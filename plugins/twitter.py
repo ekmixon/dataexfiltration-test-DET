@@ -34,7 +34,6 @@ class StdOutListener(StreamListener):
                     app_exfiltrate.retrieve_data(data_to_retrieve)
                 except Exception as e:
                     print(e)
-                    pass
         except:
             # app_exfiltrate.log_message('warning', "Could not manage to decode message")
             pass
