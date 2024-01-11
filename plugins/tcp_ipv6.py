@@ -33,11 +33,16 @@ def sniff(handler):
     sockaddr = ('::1', port)
     server_socket.bind(sockaddr)
     server_socket.listen(1)
-    app_exfiltrate.log_message('info', "[tcp_ipv6] Starting server on interface '::1' and port {}...".format(port))
+    app_exfiltrate.log_message(
+        'info',
+        f"[tcp_ipv6] Starting server on interface '::1' and port {port}...",
+    )
     while True:
         conn, addr = server_socket.accept()
         # print ('Server: Connected by', addr)
-        app_exfiltrate.log_message('info', "[tcp_ipv6] Client {} connected and sending data...".format(addr))
+        app_exfiltrate.log_message(
+            'info', f"[tcp_ipv6] Client {addr} connected and sending data..."
+        )
         data = conn.recv(4096)
         handler(data.decode('hex'))
         conn.send(data)

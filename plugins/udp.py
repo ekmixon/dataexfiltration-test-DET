@@ -28,11 +28,9 @@ def sniff(handler):
     try:
         server_address = ('', port)
         sock.bind(server_address)
-        app_exfiltrate.log_message(
-            'info', "[udp] Starting server on port {}...".format(port))
+        app_exfiltrate.log_message('info', f"[udp] Starting server on port {port}...")
     except socket.error as e:
-        app_exfiltrate.log_message(
-            'warning', "[udp] Couldn't bind on port {}...".format(port))
+        app_exfiltrate.log_message('warning', f"[udp] Couldn't bind on port {port}...")
         sys.exit(-1)
 
     while True:
@@ -40,18 +38,15 @@ def sniff(handler):
         try:
             while True:
                 data, client_address = sock.recvfrom(65535)
-                app_exfiltrate.log_message(
-                    'info', "[udp] client connected: {}".format(client_address))
+                app_exfiltrate.log_message('info', f"[udp] client connected: {client_address}")
                 if data:
-                    app_exfiltrate.log_message(
-                        'info', "[udp] Received {} bytes".format(len(data)))
+                    app_exfiltrate.log_message('info', f"[udp] Received {len(data)} bytes")
                     try:
                         data = data.decode('hex')
                         #app_exfiltrate.retrieve_data(data)
                         handler(data)
                     except Exception as e:
-                        app_exfiltrate.log_message(
-                            'warning', "[udp] Failed decoding message {}".format(e))
+                        app_exfiltrate.log_message('warning', f"[udp] Failed decoding message {e}")
                 else:
                     break
         finally:

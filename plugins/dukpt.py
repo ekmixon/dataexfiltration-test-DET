@@ -27,14 +27,8 @@ class DUKPT:
         ipek (raw or BitArray) -- Initial Pin Encryption Key (16 bytes)
         """
         if ipek:
-            if isinstance(ipek, BitArray):
-                self._ipek = ipek
-            else:
-                self._ipek = BitArray(bytes=ipek)
-            if isinstance(ksn, BitArray):
-                self._ksn = ksn
-            else:
-                self._ksn  = BitArray(bytes=ksn)
+            self._ipek = ipek if isinstance(ipek, BitArray) else BitArray(bytes=ipek)
+            self._ksn = ksn if isinstance(ksn, BitArray) else BitArray(bytes=ksn)
         else:
             if not bdk:
                 raise InvalidDUKPTArguments("Must have either ipek or bdk")
@@ -126,17 +120,13 @@ class DUKPT:
         BitArray of only the counter bytes
         """
         mask = BitArray(hex='0x1fffff')
-        if len(data.bytes) > 3:
-            ctr = BitArray(bytes=data.bytes[-3:])
-        else:
-            ctr = data
-
+        ctr = BitArray(bytes=data.bytes[-3:]) if len(data.bytes) > 3 else data
         return mask & ctr
 
     def increase_counter(self):
         """Increase the counter bytes of the stored ksn by one"""
         ctr = self._ksn.cut(21, start=59).next().int + 1
-        self._ksn.overwrite('0b'+BitArray(int=ctr, length=21).bin, 59)
+        self._ksn.overwrite(f'0b{BitArray(int=ctr, length=21).bin}', 59)
 
 class Server(DUKPT):
     def __init__(self, bdk=None):
